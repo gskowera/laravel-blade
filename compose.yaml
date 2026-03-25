@@ -1,26 +1,36 @@
 services:
-    laravel.test:
-        build:
-            context: ./vendor/laravel/sail/runtimes/8.5
-            dockerfile: Dockerfile
-            args:
-                WWWGROUP: '${WWWGROUP}'
-        image: sail-8.5/app
-        extra_hosts:
-            - 'host.docker.internal:host-gateway'
-        ports:
-            - '${APP_PORT:-80}:80'
-            - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
-        environment:
-            WWWUSER: '${WWWUSER}'
-            LARAVEL_SAIL: 1
-            XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
-            XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
-            IGNITION_LOCAL_SITES_PATH: '${PWD}'
-        volumes:
-            - '.:/var/www/html'
-        networks:
-            - sail
+  laravel-blade:
+    build:
+      context: ./vendor/laravel/sail/runtimes/8.5
+      dockerfile: Dockerfile
+      args:
+        WWWGROUP: '${WWWGROUP}'
+    image: sail-8.5/app
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - "${VITE_PORT:-5173}:${VITE_PORT:-5173}"
+    environment:
+      WWWUSER: '${WWWUSER}'
+      LARAVEL_SAIL: 1
+      XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
+      XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
+      IGNITION_LOCAL_SITES_PATH: '${PWD}'
+    volumes:
+      - .:/var/www/html
+    labels:
+      - "traefik.docker.network=traefik-proxy"
+      - "traefik.enable=true"
+      - "traefik.http.routers.laravel-blade-router.rule=Host(`laravel-blade.test`)"
+      - "traefik.http.routers.laravel-blade-router.entrypoints=websecure"
+      - "traefik.http.routers.laravel-blade-router.tls=true"
+      - "traefik.http.routers.laravel-blade-router.service=laravel-blade-service"
+      - "traefik.http.services.laravel-blade-service.loadbalancer.server.port=80"
+    networks:
+      - traefik-proxy
+      - sail
 networks:
+    traefik-proxy:
+      external: true
     sail:
-        driver: bridge
+      driver: bridge
